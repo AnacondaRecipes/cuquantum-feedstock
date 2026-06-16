@@ -167,6 +167,7 @@ outputs:
     about:
       home: https://developer.nvidia.com/cuquantum-sdk
       license: LicenseRef-cuQuantum-Software-License-Agreement
+      license_family: Other
       license_url: https://docs.nvidia.com/cuda/cuquantum/latest/license.html
       license_file: LICENSE
       summary: 'cuDensityMat: A High-Performance Library for composing analog quantum dynamics equation solvers'
@@ -224,6 +225,7 @@ outputs:
     about:
       home: https://developer.nvidia.com/cuquantum-sdk
       license: LicenseRef-cuQuantum-Software-License-Agreement
+      license_family: Other
       license_url: https://docs.nvidia.com/cuda/cuquantum/latest/license.html
       license_file: LICENSE
       summary: 'cuPauliProp: A high-performance library providing primitives for algorithms based on Pauli propagation'
@@ -281,6 +283,7 @@ outputs:
     about:
       home: https://developer.nvidia.com/cuquantum-sdk
       license: LicenseRef-cuQuantum-Software-License-Agreement
+      license_family: Other
       license_url: https://docs.nvidia.com/cuda/cuquantum/latest/license.html
       license_file: LICENSE
       summary: 'cuStabilizer: A high-performance library for GPU-accelerated simulation of noisy Clifford quantum circuits'
@@ -356,6 +359,7 @@ outputs:
     about:
       home: https://developer.nvidia.com/cuquantum-sdk
       license: LicenseRef-cuQuantum-Software-License-Agreement
+      license_family: Other
       license_url: https://docs.nvidia.com/cuda/cuquantum/latest/license.html
       license_file: LICENSE
       summary: 'cuTensorNet: A High-Performance Library for Tensor Network Computations'
@@ -421,6 +425,7 @@ outputs:
     about:
       home: https://developer.nvidia.com/cuquantum-sdk
       license: LicenseRef-cuQuantum-Software-License-Agreement
+      license_family: Other
       license_url: https://docs.nvidia.com/cuda/cuquantum/latest/license.html
       license_file: LICENSE
       summary: 'cuStateVec: A High-Performance Library for State Vector Quantum Simulators'
@@ -441,12 +446,10 @@ outputs:
     version: {{ ".".join(sdk_version[:3]) }}
     build:
       number: {{ build_num }}
-      skip: true  # [py<311 or py>313]
-      # build cuQuantum Python package is CUDA agnostic, serving both CUDA 13/12
-      # only build in the CUDA 12 pipeline
-      # (note: this still uses cuda_compiler_version to calculate hash)
-      skip: true  # [not (cuda_compiler_version or "").startswith("12")]
-      skip: true  # [mpi != "nompi"]
+      # Deferred to pass 2: cuQuantum Python requires nvmath-python ==0.7.0
+      # (PKG-11143), not yet on pkgs/main. Restore the py311-313 / cuda12 /
+      # nompi skips and remove this once nvmath-python is released.
+      skip: true
       script: "${RECIPE_DIR}/cuquantum-python/cuquantum-python-install"
       ignore_run_exports_from:
         # let cuquantum handle the CUDA deps
@@ -497,6 +500,7 @@ outputs:
     about:
       home: https://developer.nvidia.com/cuquantum-sdk
       license: BSD-3-Clause
+      license_family: BSD
       license_url: https://docs.nvidia.com/cuda/cuquantum/latest/license.html#nvidia-cuquantum-python
       license_file: LICENSE
       summary: "cuQuantum Python: A High-Performance Library for Accelerating Quantum Computing Simulations in Python"
@@ -509,6 +513,7 @@ outputs:
 about:
   home: https://developer.nvidia.com/cuquantum-sdk
   license: LicenseRef-cuQuantum-Software-License-Agreement
+  license_family: Other
   license_url: https://docs.nvidia.com/cuda/cuquantum/latest/license.html
   license_file: LICENSE
   summary: 'cuQuantum SDK: A High-Performance Library for Accelerating Quantum Computing Simulations'
@@ -532,6 +537,15 @@ about:
   dev_url: https://github.com/NVIDIA/cuQuantum
 
 extra:
+  skip-lints:
+    # license_url is kept on all Nvidia feedstocks per team convention
+    - deprecate_license_url
+    # cutensor/libcublas/libcusolver/mpi etc. are linked libs with no CBC pin
+    # var; cuda-version steers the CUDA major. Same approach as magma-feedstock.
+    - host_section_needs_exact_pinnings
+    # multi-output with cuda- and mpi-conditionally-skipped outputs; the 1-to-1
+    # check can't find them at lint render.
+    - missing_source_tracking
   recipe-maintainers:
     - b-kloss
     - leofang
