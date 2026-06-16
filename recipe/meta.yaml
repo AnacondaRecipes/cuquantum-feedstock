@@ -62,9 +62,7 @@ source:
 
 build:
   number: {{ build_num }}
-  skip: true  # [cuda_compiler_version in (None, "None")]
-  skip: true  # [win]
-  skip: true  # [osx]
+  skip: true  # [(cuda_compiler_version in (None, "None")) or win or osx]
 
 requirements:
   build:
