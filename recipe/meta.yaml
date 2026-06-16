@@ -45,11 +45,17 @@ package:
   version: {{ version }}
 
 source:
-  - url: {{ devzone }}  # [((cuda_compiler_version or "").startswith("12") or (cuda_compiler_version or "").startswith("13")) and (linux64 or aarch64)]
-    sha256: d1a3100824be7cb69bb08c523fff03ea845bbb05343e66f9f0dc9ffe2b7cf464  # [(cuda_compiler_version or "").startswith("12") and linux64]
-    sha256: b694e56bede1986c70281d327e44c5540e3946f3cb804e50793cd036fc2ca37a  # [(cuda_compiler_version or "").startswith("13") and linux64]
-    sha256: 0313dc6fb2e984ce156c692f056065bd9abc6e6e0c22db22b8e160ce1abfa108  # [(cuda_compiler_version or "").startswith("12") and aarch64]
-    sha256: 23d43d753188c6ac550a03d9abb9b2703702a3409d9dd8e8305d5c767145233b  # [(cuda_compiler_version or "").startswith("13") and aarch64]
+  # One entry per variant ({{ devzone }} resolves the cuda major + march per
+  # variant). Avoids the linter's duplicate-sha256-keys warning that the
+  # single-url-multi-sha256 form trips.
+  - url: {{ devzone }}  # [linux64 and (cuda_compiler_version or "").startswith("12")]
+    sha256: d1a3100824be7cb69bb08c523fff03ea845bbb05343e66f9f0dc9ffe2b7cf464  # [linux64 and (cuda_compiler_version or "").startswith("12")]
+  - url: {{ devzone }}  # [linux64 and (cuda_compiler_version or "").startswith("13")]
+    sha256: b694e56bede1986c70281d327e44c5540e3946f3cb804e50793cd036fc2ca37a  # [linux64 and (cuda_compiler_version or "").startswith("13")]
+  - url: {{ devzone }}  # [aarch64 and (cuda_compiler_version or "").startswith("12")]
+    sha256: 0313dc6fb2e984ce156c692f056065bd9abc6e6e0c22db22b8e160ce1abfa108  # [aarch64 and (cuda_compiler_version or "").startswith("12")]
+  - url: {{ devzone }}  # [aarch64 and (cuda_compiler_version or "").startswith("13")]
+    sha256: 23d43d753188c6ac550a03d9abb9b2703702a3409d9dd8e8305d5c767145233b  # [aarch64 and (cuda_compiler_version or "").startswith("13")]
 
   - url: {{ github }}  # [linux64 or aarch64]
     sha256: 8127326685754f9b4f43ef7af39ac1b356b3b1b9dc7ae3e38002d7fe5136c82d  # [linux64 or aarch64]
