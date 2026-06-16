@@ -16,7 +16,7 @@
 {% set cuda_compiler_version = cuda_compiler_version | default("None") %}
 
 # cuda_compiler_version is always dotted (e.g. "12.9"/"13.0") on AR; take the
-# major. (Flattened from an {% if %} block that AR's linter parser rejects.)
+# major. (Flattened from an if/else block that AR's linter parser rejects.)
 {% set cuda_major = (cuda_compiler_version | string).split(".")[0] | int %}
 
 
@@ -25,7 +25,7 @@
 {% set build_num_nompi_increment = 100 %}
 
 # encode mpi dependency in the build string for cutensornet and cudensitymat
-# (flattened from {% if %} blocks, which AR's linter parser rejects)
+# (flattened from if/else blocks, which AR's linter parser rejects)
 {% set mpi_prefix = ("mpi_" + mpi) if mpi != "nompi" else "nompi" %}
 {% set mpi_build_num = build_num if mpi != "nompi" else (build_num_nompi_increment + build_num) %}
 
