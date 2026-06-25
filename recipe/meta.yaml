@@ -20,7 +20,7 @@
 {% set cuda_major = (cuda_compiler_version | string).split(".")[0] | int %}
 
 
-{% set build_num = 1 %}
+{% set build_num = 0 %}
 # prioritize nompi variant via build number
 {% set build_num_nompi_increment = 100 %}
 
@@ -77,8 +77,6 @@ outputs:
     build:
       number: {{ build_num }}
     requirements:
-      build:
-      host:
       run:
         - {{ pin_subpackage("cudensitymat", max_pin="x.x.x") }}
         - {{ pin_subpackage("cutensornet", max_pin="x.x.x") }}
@@ -457,9 +455,6 @@ outputs:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - {{ compiler('cuda') }}
-        - cross-python_{{ target_platform }}  # [build_platform != target_platform]
-        - python                              # [build_platform != target_platform]
-        - cython >=3.0.4,!=3.1.0,!=3.1.1      # [build_platform != target_platform]
       host:
         - python
         - pip
