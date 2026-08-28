@@ -10,3 +10,4 @@ upstream_sources:
       - custabilizer
       - cutensornet
       - custatevec
+      - cuquantum-python
