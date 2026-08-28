@@ -164,7 +164,10 @@ outputs:
       license: LicenseRef-cuQuantum-Software-License-Agreement
       license_family: Other
       license_url: https://docs.nvidia.com/cuda/cuquantum/latest/license.html
-      license_file: LICENSE
+      # Both sources unpack into $SRC_DIR and each ships a root LICENSE; the
+      # GitHub archive is extracted last, so a bare "LICENSE" resolves to the
+      # BSD text. Point at the NVIDIA SLA explicitly.
+      license_file: python/NV.LICENSE
       summary: 'cuDensityMat: A High-Performance Library for composing analog quantum dynamics equation solvers'
       description: |
         NVIDIA cuDensityMat is a high-performance library for composing analog quantum dynamics equation solvers. 
@@ -222,7 +225,10 @@ outputs:
       license: LicenseRef-cuQuantum-Software-License-Agreement
       license_family: Other
       license_url: https://docs.nvidia.com/cuda/cuquantum/latest/license.html
-      license_file: LICENSE
+      # Both sources unpack into $SRC_DIR and each ships a root LICENSE; the
+      # GitHub archive is extracted last, so a bare "LICENSE" resolves to the
+      # BSD text. Point at the NVIDIA SLA explicitly.
+      license_file: python/NV.LICENSE
       summary: 'cuPauliProp: A high-performance library providing primitives for algorithms based on Pauli propagation'
       description: |
         NVIDIA cuPauliProp is a high-performance library providing primitives for algorithms based on Pauli propagation.
@@ -280,7 +286,10 @@ outputs:
       license: LicenseRef-cuQuantum-Software-License-Agreement
       license_family: Other
       license_url: https://docs.nvidia.com/cuda/cuquantum/latest/license.html
-      license_file: LICENSE
+      # Both sources unpack into $SRC_DIR and each ships a root LICENSE; the
+      # GitHub archive is extracted last, so a bare "LICENSE" resolves to the
+      # BSD text. Point at the NVIDIA SLA explicitly.
+      license_file: python/NV.LICENSE
       summary: 'cuStabilizer: A high-performance library for GPU-accelerated simulation of noisy Clifford quantum circuits'
       description: |
         NVIDIA cuStabilizer is a high-performance library for GPU-accelerated simulation of noisy Clifford quantum circuits.
@@ -358,7 +367,10 @@ outputs:
       license: LicenseRef-cuQuantum-Software-License-Agreement
       license_family: Other
       license_url: https://docs.nvidia.com/cuda/cuquantum/latest/license.html
-      license_file: LICENSE
+      # Both sources unpack into $SRC_DIR and each ships a root LICENSE; the
+      # GitHub archive is extracted last, so a bare "LICENSE" resolves to the
+      # BSD text. Point at the NVIDIA SLA explicitly.
+      license_file: python/NV.LICENSE
       summary: 'cuTensorNet: A High-Performance Library for Tensor Network Computations'
       description: |
         NVIDIA cuTensorNet is a high-performance library for tensor network computations.
@@ -424,7 +436,10 @@ outputs:
       license: LicenseRef-cuQuantum-Software-License-Agreement
       license_family: Other
       license_url: https://docs.nvidia.com/cuda/cuquantum/latest/license.html
-      license_file: LICENSE
+      # Both sources unpack into $SRC_DIR and each ships a root LICENSE; the
+      # GitHub archive is extracted last, so a bare "LICENSE" resolves to the
+      # BSD text. Point at the NVIDIA SLA explicitly.
+      license_file: python/NV.LICENSE
       summary: 'cuStateVec: A High-Performance Library for State Vector Quantum Simulators'
       description: |
         NVIDIA cuStateVec is a high-performance library dedicated to operations for building state vector quantum simulators.
@@ -503,7 +518,11 @@ outputs:
       license: BSD-3-Clause
       license_family: BSD
       license_url: https://docs.nvidia.com/cuda/cuquantum/latest/license.html#nvidia-cuquantum-python
-      license_file: LICENSE
+      # Upstream setup.py: license_files = ("LICENSE", "NV.LICENSE") -- the
+      # bindings are BSD-3-Clause, the libraries they bind are not.
+      license_file:
+        - python/LICENSE
+        - python/NV.LICENSE
       summary: "cuQuantum Python: A High-Performance Library for Accelerating Quantum Computing Simulations in Python"
       description: |
         NVIDIA cuQuantum Python provides Python bindings and high-level object-oriented
@@ -516,7 +535,10 @@ about:
   license: LicenseRef-cuQuantum-Software-License-Agreement
   license_family: Other
   license_url: https://docs.nvidia.com/cuda/cuquantum/latest/license.html
-  license_file: LICENSE
+  # Both sources unpack into $SRC_DIR and each ships a root LICENSE; the
+  # GitHub archive is extracted last, so a bare "LICENSE" resolves to the
+  # BSD text. Point at the NVIDIA SLA explicitly.
+  license_file: python/NV.LICENSE
   summary: 'cuQuantum SDK: A High-Performance Library for Accelerating Quantum Computing Simulations'
   description: |
     NVIDIA cuQuantum SDK is a set of high-performance libraries and tools for accelerating
