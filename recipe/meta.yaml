@@ -7,57 +7,39 @@
 {% set cupp_version = "0.5.1" %}
 {% set cust_version = "0.5.0" %}
 
-{% set sdk_version = version.split(".") %}
-{% set sdk_year  = sdk_version[0] | int %}
-{% set sdk_month = sdk_version[1] | int %}
-{% set sdk_patch = sdk_version[2] | int %}
-{% set sdk_build = sdk_version[3] | int %}
-
-{% set cuda_compiler_version = cuda_compiler_version | default("None") %}
-
-# cuda_compiler_version is always dotted (e.g. "12.9"/"13.0") on AR; take the
-# major. (Flattened from an if/else block that AR's linter parser rejects.)
-{% set cuda_major = (cuda_compiler_version | string).split(".")[0] | int %}
-
-
 {% set build_num = 0 %}
-# prioritize nompi variant via build number
-{% set build_num_nompi_increment = 100 %}
 
-# encode mpi dependency in the build string for cutensornet and cudensitymat
-# (flattened from if/else blocks, which AR's linter parser rejects)
-{% set mpi_prefix = ("mpi_" + mpi) if mpi != "nompi" else "nompi" %}
-{% set mpi_build_num = build_num if mpi != "nompi" else (build_num_nompi_increment + build_num) %}
-
-# NVPL/cuQuantum redist + GitHub source URLs (linux-64/aarch64 only; win/osx skipped)
-{% set kname = "linux" %}                                                                                   # [linux64 or aarch64]
-{% set march = "sbsa" %}                                                                                    # [aarch64]
-{% set march = "x86_64" %}                                                                                  # [linux64]
-{% set devzone_base = "https://developer.download.nvidia.com/compute" %}                                    # [linux64 or aarch64]
-{% set devzone = "%s/%s/redist/%s/%s-%s" % (devzone_base, package, package, kname, march) %}                # [linux64 or aarch64]
-{% set devzone = "%s/%s-%s-%s-%s_cuda%s-archive.tar.xz" % (devzone, package, kname, march, version, cuda_major) %}  # [linux64 or aarch64]
-{% set github_base = "https://github.com/nvidia" %}                                                         # [linux64 or aarch64]
-{% set github = "%s/%s" % (github_base, package) %}                                                         # [linux64 or aarch64]
-{% set github = "%s/archive/refs/tags/v%s.tar.gz" % (github, ".".join(sdk_version[:3])) %}                  # [linux64 or aarch64]
+# The MPI-dependent outputs encode the flavor in their build string and number.
+# Plain literals are selected per variant instead of computed expressions, because
+# the linter's recipe parser substitutes computed Jinja set values verbatim, which
+# leaves invalid metadata in the rendered recipe it feeds to its legacy checks.
+{% set mpi_prefix = "nompi" %}        # [mpi == "nompi"]
+{% set mpi_prefix = "mpi_openmpi" %}  # [mpi == "openmpi"]
+{% set mpi_prefix = "mpi_mpich" %}    # [mpi == "mpich"]
+# prioritize the nompi variant via the build number
+{% set mpi_build_num = 100 %}         # [mpi == "nompi"]
+{% set mpi_build_num = 0 %}           # [mpi != "nompi"]
 
 package:
-  name: cuquantum-sdk
+  name: {{ package }}-sdk
   version: {{ version }}
 
 source:
-  # One entry per variant ({{ devzone }} resolves the cuda major + march per
-  # variant). Avoids the linter's duplicate-sha256-keys warning that the
-  # single-url-multi-sha256 form trips.
-  - url: {{ devzone }}  # [linux64 and (cuda_compiler_version or "").startswith("12")]
+  # One entry per variant. The redist URLs are spelled out instead of being built
+  # up in a Jinja set block because the AR linter resolves plain variable
+  # substitutions and inline expressions, but not values built up in set blocks;
+  # otherwise it reports http_url/reachable_url. One entry per variant also avoids
+  # the duplicate-sha256-keys warning that the single-url-multi-sha256 form trips.
+  - url: https://developer.download.nvidia.com/compute/{{ package }}/redist/{{ package }}/linux-x86_64/{{ package }}-linux-x86_64-{{ version }}_cuda12-archive.tar.xz  # [linux64 and (cuda_compiler_version or "").startswith("12")]
     sha256: adcbdc26e6407d799e484a0a6690bf6835737df41a9a8fd5e6d58dda970903a1  # [linux64 and (cuda_compiler_version or "").startswith("12")]
-  - url: {{ devzone }}  # [linux64 and (cuda_compiler_version or "").startswith("13")]
+  - url: https://developer.download.nvidia.com/compute/{{ package }}/redist/{{ package }}/linux-x86_64/{{ package }}-linux-x86_64-{{ version }}_cuda13-archive.tar.xz  # [linux64 and (cuda_compiler_version or "").startswith("13")]
     sha256: ba3fad12993c9dc2725b41b10d9794885920e520c8486564ffe664423e1c7256  # [linux64 and (cuda_compiler_version or "").startswith("13")]
-  - url: {{ devzone }}  # [aarch64 and (cuda_compiler_version or "").startswith("12")]
+  - url: https://developer.download.nvidia.com/compute/{{ package }}/redist/{{ package }}/linux-sbsa/{{ package }}-linux-sbsa-{{ version }}_cuda12-archive.tar.xz  # [aarch64 and (cuda_compiler_version or "").startswith("12")]
     sha256: c7bc76516898188bb1867669b50fee9cff674c6ec324551d14fec654665c4193  # [aarch64 and (cuda_compiler_version or "").startswith("12")]
-  - url: {{ devzone }}  # [aarch64 and (cuda_compiler_version or "").startswith("13")]
+  - url: https://developer.download.nvidia.com/compute/{{ package }}/redist/{{ package }}/linux-sbsa/{{ package }}-linux-sbsa-{{ version }}_cuda13-archive.tar.xz  # [aarch64 and (cuda_compiler_version or "").startswith("13")]
     sha256: be1a540fd0870ea3bc7e8f69f6f35d0cf404c8ae4c6cc67211504ae2e930c0f6  # [aarch64 and (cuda_compiler_version or "").startswith("13")]
-
-  - url: {{ github }}  # [linux64 or aarch64]
+  # the GitHub tag is the version without the build suffix (v26.11.0 for 26.11.0.4)
+  - url: https://github.com/nvidia/{{ package }}/archive/refs/tags/v{{ ".".join(version.split(".")[:3]) }}.tar.gz  # [linux64 or aarch64]
     sha256: a062ba0d3e101de5b8e352bcd46096b22d1eb0d0c2c4abcd777405416a8c0179  # [linux64 or aarch64]
 
 build:
@@ -127,7 +109,12 @@ outputs:
         - libcusparse
         - libcurand
         - cuda-cudart-dev  # [mpi != "nompi"]
+        # the implementation package: provides mpicc, headers and libs
         - {{ mpi }}  # [mpi != "nompi"]
+        # `mpi` is the CBC variable that names the flavor; on defaults it is a
+        # dependency-free marker package (openmpi above is what provides MPI).
+        # Listed only so the host and run names match for the linter.
+        - mpi 1.0.* {{ mpi }}  # [mpi != "nompi"]
         - nccl  # [mpi != "nompi"]
       run:
         - {{ pin_compatible("cuda-version", max_pin="x", min_pin="x") }}
@@ -177,7 +164,7 @@ outputs:
       license_file: python/NV.LICENSE
       summary: 'cuDensityMat: A High-Performance Library for composing analog quantum dynamics equation solvers'
       description: |
-        NVIDIA cuDensityMat is a high-performance library for composing analog quantum dynamics equation solvers. 
+        NVIDIA cuDensityMat is a high-performance library for composing analog quantum dynamics equation solvers.
         cuDensityMat is a component of the NVIDIA cuQuantum SDK.
         In addition to C APIs, cuDensityMat can also be accessed in Python via cuQuantum Python.
 
@@ -214,6 +201,8 @@ outputs:
         - cuda-version {{ cuda_compiler_version }}
         - cuda-cudart-dev  # [mpi != "nompi"]
         - {{ mpi }}  # [mpi != "nompi"]
+        # see the cudensitymat host notes above
+        - mpi 1.0.* {{ mpi }}  # [mpi != "nompi"]
         - nccl  # [mpi != "nompi"]
       run:
         - {{ pin_compatible("cuda-version", max_pin="x", min_pin="x") }}
@@ -361,6 +350,8 @@ outputs:
         - libcusolver
         - libcublas
         - {{ mpi }}  # [mpi != "nompi"]
+        # see the cudensitymat host notes above
+        - mpi 1.0.* {{ mpi }}  # [mpi != "nompi"]
         - nccl  # [mpi != "nompi"]
       run:
         - {{ pin_compatible("cuda-version", max_pin="x", min_pin="x") }}
@@ -420,7 +411,7 @@ outputs:
         https://docs.nvidia.com/cuda/cuquantum/license.html
       doc_url: https://docs.nvidia.com/cuda/cuquantum/latest/cutensornet/
       dev_url: https://github.com/NVIDIA/cuQuantum
-  
+
   - name: custatevec
     version: {{ cusv_version }}
     build:
@@ -482,17 +473,17 @@ outputs:
         NVIDIA cuStateVec is a high-performance library dedicated to operations for building state vector quantum simulators.
         cuStateVec is a component of the NVIDIA cuQuantum SDK.
         In addition to C APIs, cuStateVec can also be accessed in Python via cuQuantum Python.
-        
+
         The packages cuquantum, cudensitymat, cupauliprop, custabilizer, custatevec, and cutensornet are governed by the NVIDIA cuQuantum
         Software License Agreement (EULA). By downloading and using the packages,
         you accept the terms and conditions of the NVIDIA cuQuantum EULA -
         https://docs.nvidia.com/cuda/cuquantum/license.html
       doc_url: https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/
       dev_url: https://github.com/NVIDIA/cuQuantum
-  
+
   - name: cuquantum-python
     # cuquantum python version label is MAJOR.MINOR.PATCH
-    version: {{ ".".join(sdk_version[:3]) }}
+    version: {{ ".".join(version.split(".")[:3]) }}
     build:
       number: {{ build_num }}
       # One CUDA-agnostic wheel serves both CUDA 12 and 13, so build it only in
@@ -532,7 +523,7 @@ outputs:
         # pkgs/main ships 1.0.0
         - nvmath-python >=1.0.0,<2.0.0
         - cuda-pathfinder >=1.6.0,<2
-        # upstream: >=12.9.4,<13.0.0 for CUDA 12 and >=13.0.3,<14.0.0 for CUDA 13
+        # upstream requires cuda-bindings >=12.9.4,<13.0.0 for CUDA 12 and >=13.0.3,<14.0.0 for CUDA 13
         - cuda-bindings >=12.9.4,<13.0a0|>=13.0.3,<14.0a0
         - {{ pin_subpackage('custatevec', max_pin='x') }}
         - {{ pin_subpackage('cutensornet', max_pin='x') }}
@@ -549,6 +540,10 @@ outputs:
     test:
       requires:
         - cuda-driver-dev
+      imports:
+        # the top-level module is lazy; the CUDA-dependent bindings are imported
+        # by the test script below with the driver stub preloaded
+        - cuquantum
       files:
         - ./common/*
         - ./cuquantum-python/*
@@ -584,15 +579,15 @@ about:
   description: |
     NVIDIA cuQuantum SDK is a set of high-performance libraries and tools for accelerating
     quantum computing simulations at both the circuit and device level by orders of magnitude. It consists of five major components:
-    
+
     - cuDensityMat: a high-performance library for quantum dynamics equation solvers
     - cuStabilizer: a high-performance library for stabilizer state quantum simulators
     - cuPauliProp: a high-performance library for Pauli path propagation quantum simulators
     - cuStateVec: a high-performance library for state vector quantum simulators
     - cuTensorNet: a high-performance library for tensor network computations
-    
+
     In addition to C APIs, cuQuantum also provides Python APIs via cuQuantum Python.
-    
+
     The packages cuquantum, cudensitymat, cupauliprop, custabilizer, custatevec, and cutensornet are governed by the NVIDIA cuQuantum
     Software License Agreement (EULA). By downloading and using the packages,
     you accept the terms and conditions of the NVIDIA cuQuantum EULA -
@@ -604,12 +599,20 @@ extra:
   skip-lints:
     # license_url is kept on all Nvidia feedstocks per team convention
     - deprecate_license_url
-    # cutensor/libcublas/libcusolver/mpi etc. are linked libs with no CBC pin
-    # var; cuda-version steers the CUDA major. Same approach as magma-feedstock.
+    # The rule raises an internal exception on this multi-output recipe (it also
+    # raises on the 26.06 one); no output is noarch, so nothing is lost.
+    - avoid_noarch
+    # conda-build >= 3.0.26 discards an output-level `script:` whenever the output
+    # also has a `build:` section (get_output_metadata replaces build wholesale),
+    # so outputs that need number/string/skip must keep build/script. Verified
+    # with conda-build 26.9.1: output-level script renders to build/script = [].
+    - wrong_output_script_key
+    # The CUDA libraries (libcublas/libcusolver/libcusparse/libcurand) have no CBC
+    # version variables, so they cannot be pinned exactly without hardcoding a
+    # per-CUDA-major version; cuda-version steers the major instead. The rule also
+    # wants exact pins for the nccl/openmpi CBC variables, which conda-forge
+    # likewise leaves to run_exports. Same approach as magma-feedstock.
     - host_section_needs_exact_pinnings
-    # multi-output with cuda- and mpi-conditionally-skipped outputs; the 1-to-1
-    # check can't find them at lint render.
-    - missing_source_tracking
   recipe-maintainers:
     - b-kloss
     - leofang
