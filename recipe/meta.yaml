@@ -1,11 +1,11 @@
 {% set package = "cuquantum" %}
 # Make sure the component versions are consistent with the SDK version!
-{% set version = "26.06.0.17" %}
-{% set cudm_version = "0.6.0" %}
-{% set cusv_version = "1.14.0" %}
-{% set cutn_version = "2.13.0" %}
-{% set cupp_version = "0.4.0" %}
-{% set cust_version = "0.4.0" %}
+{% set version = "26.11.0.4" %}
+{% set cudm_version = "0.7.1" %}
+{% set cusv_version = "1.15.1" %}
+{% set cutn_version = "2.15.0" %}
+{% set cupp_version = "0.5.1" %}
+{% set cust_version = "0.5.0" %}
 
 {% set sdk_version = version.split(".") %}
 {% set sdk_year  = sdk_version[0] | int %}
@@ -49,16 +49,16 @@ source:
   # variant). Avoids the linter's duplicate-sha256-keys warning that the
   # single-url-multi-sha256 form trips.
   - url: {{ devzone }}  # [linux64 and (cuda_compiler_version or "").startswith("12")]
-    sha256: 4c37aa346fab9023d985e79667b047e13a0c0f9b9fea7dfca453979b331c8f77  # [linux64 and (cuda_compiler_version or "").startswith("12")]
+    sha256: adcbdc26e6407d799e484a0a6690bf6835737df41a9a8fd5e6d58dda970903a1  # [linux64 and (cuda_compiler_version or "").startswith("12")]
   - url: {{ devzone }}  # [linux64 and (cuda_compiler_version or "").startswith("13")]
-    sha256: 1526046a38910024b10de02d568c4fad5dab9a6caf2089afa21477b7949bf0b9  # [linux64 and (cuda_compiler_version or "").startswith("13")]
+    sha256: ba3fad12993c9dc2725b41b10d9794885920e520c8486564ffe664423e1c7256  # [linux64 and (cuda_compiler_version or "").startswith("13")]
   - url: {{ devzone }}  # [aarch64 and (cuda_compiler_version or "").startswith("12")]
-    sha256: f4a5308e50ee7912bc6dfd399af58206ae891746c282ecfd135c748ac4d0e236  # [aarch64 and (cuda_compiler_version or "").startswith("12")]
+    sha256: c7bc76516898188bb1867669b50fee9cff674c6ec324551d14fec654665c4193  # [aarch64 and (cuda_compiler_version or "").startswith("12")]
   - url: {{ devzone }}  # [aarch64 and (cuda_compiler_version or "").startswith("13")]
-    sha256: b966b1038b2430c63a10fd40f8d942a1edca929f85eeb52a7c8390c21b5e3de5  # [aarch64 and (cuda_compiler_version or "").startswith("13")]
+    sha256: be1a540fd0870ea3bc7e8f69f6f35d0cf404c8ae4c6cc67211504ae2e930c0f6  # [aarch64 and (cuda_compiler_version or "").startswith("13")]
 
   - url: {{ github }}  # [linux64 or aarch64]
-    sha256: e0c3e050515a062b74d6d6afd447c372c9716532030b09d1642cf4c987c51e5c  # [linux64 or aarch64]
+    sha256: a062ba0d3e101de5b8e352bcd46096b22d1eb0d0c2c4abcd777405416a8c0179  # [linux64 or aarch64]
 
 build:
   number: {{ build_num }}
@@ -101,7 +101,14 @@ outputs:
         - {{ compiler("cuda") }}
         - libcublas
         - libcusolver
+        - libcusparse
         - libcurand
+        # the NCCL distributed interface links libcudart dynamically; cuda-cudart is
+        # declared in run below and bounded by cuda-version
+        - cuda-cudart-dev  # [mpi != "nompi"]
+        # NCCL's run_exports would pin the floor to the build-time version; the
+        # documented window (>=2.29, <3.0.0) is spelled out in run instead
+        - nccl  # [mpi != "nompi"]
       post-link: post-link
     requirements:
       build:
@@ -112,15 +119,14 @@ outputs:
         - {{ mpi }}  # [mpi != "nompi"]
         - cf-nvidia-tools 1  # [linux]
       host:
-        # cutensornet-cu12 2.13.0 / cudensitymat-cu12 0.6.0 wheel metadata
-        # require cuTENSOR >=2.5,<3.
-        - cutensor >=2.5,<3
+        # cuTensorNet 2.14 (and therefore cuDensityMat) requires cuTENSOR 2.8.0 or above
+        - cutensor >=2.8,<3
         - cuda-version {{ cuda_compiler_version }}
-        - cuda-cudart
         - libcublas
         - libcusolver
         - libcusparse
         - libcurand
+        - cuda-cudart-dev  # [mpi != "nompi"]
         - {{ mpi }}  # [mpi != "nompi"]
         - nccl  # [mpi != "nompi"]
       run:
@@ -129,15 +135,16 @@ outputs:
         - {{ pin_subpackage('cutensornet', max_pin='x') }}
         # libcudensitymat.so links libcusparse; the nccl distributed interface
         # links libcudart. AR's overlinking check requires them declared.
-        - cuda-cudart
         - libcublas
         - libcusolver
         - libcusparse
         - libnvjitlink
         - libcurand
+        # runtime of libcudensitymat_distributed_interface_nccl.so (built with -lcudart)
+        - cuda-cudart  # [mpi != "nompi"]
         - mpi 1.0.* {{ mpi }}  # [mpi != "nompi"]
         - {{ mpi }}  # [mpi != "nompi"]
-        - nccl  # [mpi != "nompi"]
+        - nccl >=2.29,<3.0a0  # [mpi != "nompi"]
       run_constrained:
         # if users also wanna install mpi, we need to ensure the nompi version is not
         # picked by the solver, we do so by creating a conflict
@@ -164,8 +171,8 @@ outputs:
       license: LicenseRef-cuQuantum-Software-License-Agreement
       license_family: Other
       license_url: https://docs.nvidia.com/cuda/cuquantum/latest/license.html
-      # Both sources unpack into $SRC_DIR and each ships a root LICENSE; the
-      # GitHub archive is extracted last, so a bare "LICENSE" resolves to the
+      # Anaconda: both sources unpack into $SRC_DIR and each ships a root LICENSE;
+      # the GitHub archive is extracted last, so a bare "LICENSE" resolves to the
       # BSD text. Point at the NVIDIA SLA explicitly.
       license_file: python/NV.LICENSE
       summary: 'cuDensityMat: A High-Performance Library for composing analog quantum dynamics equation solvers'
@@ -184,13 +191,16 @@ outputs:
   - name: cupauliprop
     version: {{ cupp_version }}
     build:
-      number: {{ build_num }}
-      string: "h{{ PKG_HASH }}_{{ build_num }}"
+      number: {{ mpi_build_num }}
+      string: "{{ mpi_prefix }}_h{{ PKG_HASH }}_{{ mpi_build_num }}"
       script: "${RECIPE_DIR}/cupauliprop/cupp-install"
       run_exports:
-        - {{ pin_subpackage("cupauliprop", max_pin="x") }}
+        - {{ pin_subpackage("cupauliprop", max_pin="x") }} {{ mpi_prefix }}_*
       ignore_run_exports_from:
         - {{ compiler("cuda") }}
+        # see the cudensitymat notes above
+        - cuda-cudart-dev  # [mpi != "nompi"]
+        - nccl  # [mpi != "nompi"]
       post-link: post-link
     requirements:
       build:
@@ -198,11 +208,24 @@ outputs:
         - {{ compiler("c") }}
         - {{ compiler("cxx") }}
         - {{ compiler("cuda") }}
+        - {{ mpi }}  # [mpi != "nompi"]
         - cf-nvidia-tools 1  # [linux]
       host:
         - cuda-version {{ cuda_compiler_version }}
+        - cuda-cudart-dev  # [mpi != "nompi"]
+        - {{ mpi }}  # [mpi != "nompi"]
+        - nccl  # [mpi != "nompi"]
       run:
         - {{ pin_compatible("cuda-version", max_pin="x", min_pin="x") }}
+        # runtime of libcupauliprop_distributed_interface_nccl.so (built with -lcudart)
+        - cuda-cudart  # [mpi != "nompi"]
+        - mpi 1.0.* {{ mpi }}  # [mpi != "nompi"]
+        - {{ mpi }}  # [mpi != "nompi"]
+        - nccl >=2.29,<3.0a0  # [mpi != "nompi"]
+      run_constrained:
+        # if users also want to install mpi, we need to ensure the nompi version is not
+        # picked by the solver, we do so by creating a conflict
+        - openmpi <0.a0  # [mpi == "nompi"]
     test:
       requires:
         - git
@@ -219,14 +242,15 @@ outputs:
         - ./common/*
         - ./cupauliprop/*
       commands:
+        - export mpi={{ mpi }}
         - ./cupauliprop/cupp-tests {{ version }}
     about:
       home: https://developer.nvidia.com/cuquantum-sdk
       license: LicenseRef-cuQuantum-Software-License-Agreement
       license_family: Other
       license_url: https://docs.nvidia.com/cuda/cuquantum/latest/license.html
-      # Both sources unpack into $SRC_DIR and each ships a root LICENSE; the
-      # GitHub archive is extracted last, so a bare "LICENSE" resolves to the
+      # Anaconda: both sources unpack into $SRC_DIR and each ships a root LICENSE;
+      # the GitHub archive is extracted last, so a bare "LICENSE" resolves to the
       # BSD text. Point at the NVIDIA SLA explicitly.
       license_file: python/NV.LICENSE
       summary: 'cuPauliProp: A high-performance library providing primitives for algorithms based on Pauli propagation'
@@ -286,8 +310,8 @@ outputs:
       license: LicenseRef-cuQuantum-Software-License-Agreement
       license_family: Other
       license_url: https://docs.nvidia.com/cuda/cuquantum/latest/license.html
-      # Both sources unpack into $SRC_DIR and each ships a root LICENSE; the
-      # GitHub archive is extracted last, so a bare "LICENSE" resolves to the
+      # Anaconda: both sources unpack into $SRC_DIR and each ships a root LICENSE;
+      # the GitHub archive is extracted last, so a bare "LICENSE" resolves to the
       # BSD text. Point at the NVIDIA SLA explicitly.
       license_file: python/NV.LICENSE
       summary: 'cuStabilizer: A high-performance library for GPU-accelerated simulation of noisy Clifford quantum circuits'
@@ -315,6 +339,11 @@ outputs:
         - {{ compiler("cuda") }}
         - libcublas
         - libcusolver
+        # the cutensor bound is spelled out with pin_compatible in run (it differs
+        # per MPI flavor)
+        - cutensor
+        # see the cudensitymat notes above
+        - nccl  # [mpi != "nompi"]
       post-link: post-link
     requirements:
       build:
@@ -325,20 +354,28 @@ outputs:
         - {{ mpi }}  # [mpi != "nompi"]
         - cf-nvidia-tools 1  # [linux]
       host:
-        # cutensornet-cu12 2.13.0 / cudensitymat-cu12 0.6.0 wheel metadata
-        # require cuTENSOR >=2.5,<3.
-        - cutensor >=2.5,<3
+        # cuTensorNet 2.14 requires cuTENSOR 2.8.0 or above
+        # (cuTENSORMp ships with cuTENSOR 2.8)
+        - cutensor >=2.8,<3
         - cuda-version {{ cuda_compiler_version }}
         - libcusolver
         - libcublas
         - {{ mpi }}  # [mpi != "nompi"]
+        - nccl  # [mpi != "nompi"]
       run:
         - {{ pin_compatible("cuda-version", max_pin="x", min_pin="x") }}
-        - {{ pin_compatible("cutensor", max_pin="x") }}
+        - {{ pin_compatible("cutensor", max_pin="x") }}  # [mpi == "nompi"]
+        # Distributed tensor decomposition (samples/cutensornet/approxTN/decompose_example_mpi_nccl.cu)
+        # makes libcutensornet dlopen NCCL, cuSOLVERMp and cuTENSORMp at runtime; none of
+        # them are linked. The documented windows are NCCL >=2.29,<3.0.0, cuSOLVERMp
+        # >=0.9.1,<0.10.0 and cuTENSOR on the 2.8 minor line (cuTENSORMp ships with it).
+        - {{ pin_compatible("cutensor", max_pin="x.x") }}  # [mpi != "nompi"]
         - libcublas
         - libcusolver
         - mpi 1.0.* {{ mpi }}  # [mpi != "nompi"]
         - {{ mpi }}  # [mpi != "nompi"]
+        - nccl >=2.29,<3.0a0  # [mpi != "nompi"]
+        - libcusolvermp0 >=0.9.1,<0.10.0a0  # [mpi != "nompi"]
       run_constrained:
         # if users also want to install mpi, we need to ensure the nompi version is not
         # picked by the solver, we do so by creating a conflict
@@ -367,8 +404,8 @@ outputs:
       license: LicenseRef-cuQuantum-Software-License-Agreement
       license_family: Other
       license_url: https://docs.nvidia.com/cuda/cuquantum/latest/license.html
-      # Both sources unpack into $SRC_DIR and each ships a root LICENSE; the
-      # GitHub archive is extracted last, so a bare "LICENSE" resolves to the
+      # Anaconda: both sources unpack into $SRC_DIR and each ships a root LICENSE;
+      # the GitHub archive is extracted last, so a bare "LICENSE" resolves to the
       # BSD text. Point at the NVIDIA SLA explicitly.
       license_file: python/NV.LICENSE
       summary: 'cuTensorNet: A High-Performance Library for Tensor Network Computations'
@@ -436,8 +473,8 @@ outputs:
       license: LicenseRef-cuQuantum-Software-License-Agreement
       license_family: Other
       license_url: https://docs.nvidia.com/cuda/cuquantum/latest/license.html
-      # Both sources unpack into $SRC_DIR and each ships a root LICENSE; the
-      # GitHub archive is extracted last, so a bare "LICENSE" resolves to the
+      # Anaconda: both sources unpack into $SRC_DIR and each ships a root LICENSE;
+      # the GitHub archive is extracted last, so a bare "LICENSE" resolves to the
       # BSD text. Point at the NVIDIA SLA explicitly.
       license_file: python/NV.LICENSE
       summary: 'cuStateVec: A High-Performance Library for State Vector Quantum Simulators'
@@ -488,11 +525,15 @@ outputs:
       run:
         - python
         - numpy >=1.21,<3.0
+        # upstream: cupy-cuda12x >=13.0 and cupy-cuda13x >=13.6.0; the CUDA 12 floor
+        # covers both because the wheel is CUDA agnostic
         - cupy >=13.0
-        # conda-forge pins ==0.7.0, but upstream python/setup.py at v26.06.0
-        # requires >=0.7.0,<1.0.0; pkgs/main ships 0.9.0 (PKG-11143).
-        - nvmath-python >=0.7.0,<1.0.0
-        - cuda-bindings >=12.9.4,<14.0.0,!=13.0.0
+        # upstream python/setup.py at v26.11.0 requires >=1.0.0,<2.0.0;
+        # pkgs/main ships 1.0.0
+        - nvmath-python >=1.0.0,<2.0.0
+        - cuda-pathfinder >=1.6.0,<2
+        # upstream: >=12.9.4,<13.0.0 for CUDA 12 and >=13.0.3,<14.0.0 for CUDA 13
+        - cuda-bindings >=12.9.4,<13.0a0|>=13.0.3,<14.0a0
         - {{ pin_subpackage('custatevec', max_pin='x') }}
         - {{ pin_subpackage('cutensornet', max_pin='x') }}
         - {{ pin_subpackage('cudensitymat', max_pin='x.x') }}
@@ -535,8 +576,8 @@ about:
   license: LicenseRef-cuQuantum-Software-License-Agreement
   license_family: Other
   license_url: https://docs.nvidia.com/cuda/cuquantum/latest/license.html
-  # Both sources unpack into $SRC_DIR and each ships a root LICENSE; the
-  # GitHub archive is extracted last, so a bare "LICENSE" resolves to the
+  # Anaconda: both sources unpack into $SRC_DIR and each ships a root LICENSE;
+  # the GitHub archive is extracted last, so a bare "LICENSE" resolves to the
   # BSD text. Point at the NVIDIA SLA explicitly.
   license_file: python/NV.LICENSE
   summary: 'cuQuantum SDK: A High-Performance Library for Accelerating Quantum Computing Simulations'

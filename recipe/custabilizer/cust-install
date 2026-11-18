@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1091
-set -ex
+set -exo pipefail
 
 
 if [[ -f "${RECIPE_DIR}/common/handle-files" ]] ; then
