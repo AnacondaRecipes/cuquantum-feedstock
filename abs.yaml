@@ -1,0 +1,3 @@
+channels:
+  # cutensor 2.8.1.0
+  - https://package-build.anaconda.com/pkg-orchestrator/v1/channels/graphs/32044fc1-674e-4842-b3e0-ca7bd2d264da
