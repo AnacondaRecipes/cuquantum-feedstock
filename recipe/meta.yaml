@@ -151,6 +151,8 @@ outputs:
         - ./common/*
         - ./cudensitymat/*
       commands:
+        # unconditional: exports this variant's mpi flavor for the test script,
+        # which branches on "${mpi}" itself (nompi = plain samples only)
         - export mpi={{ mpi }}
         - ./cudensitymat/cudm-tests {{ version }}
     about:
@@ -231,6 +233,8 @@ outputs:
         - ./common/*
         - ./cupauliprop/*
       commands:
+        # unconditional: exports this variant's mpi flavor for the test script,
+        # which branches on "${mpi}" itself (nompi = plain samples only)
         - export mpi={{ mpi }}
         - ./cupauliprop/cupp-tests {{ version }}
     about:
@@ -388,6 +392,8 @@ outputs:
         - ./common/*
         - ./cutensornet/*
       commands:
+        # unconditional: exports this variant's mpi flavor for the test script,
+        # which branches on "${mpi}" itself (nompi = plain samples only)
         - export mpi={{ mpi }}
         - ./cutensornet/cutn-tests {{ version }}
     about:
