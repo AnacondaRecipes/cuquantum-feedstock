@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1091
-set -ex
+set -exo pipefail
 
 conda clean --all --yes
 
@@ -27,6 +27,8 @@ conda clean --all --yes
     fi
   fi
   echo "CUDA_PATH: ${CUDA_PATH}"
+  # Anaconda: the GitHub archive is extracted into $SRC_DIR directly (we do not use
+  # conda-forge's folder: github), so the bindings live in python/ at the top level.
   cd python &&
   "${PREFIX}/bin/python3" -m pip install --no-deps --no-build-isolation -vvv .
 )}

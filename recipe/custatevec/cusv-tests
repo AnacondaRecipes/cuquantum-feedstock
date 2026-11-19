@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1090
 # shellcheck disable=SC1091
-set -ex
+set -exo pipefail
 
 declare -gx FILES_LIB="./common/handle-files"
 if ! [[ -f "${FILES_LIB}" ]] ; then
@@ -13,6 +13,8 @@ fi
 
 declare -agx filepaths=(
   "${PREFIX}/include/custatevec.h"
+  "${PREFIX}/include/custatevecEx.h"
+  "${PREFIX}/include/custatevecEx_ext.h"
   "${PREFIX}/lib/libcustatevec.so"
 )
 
